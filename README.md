@@ -13,12 +13,14 @@ Prototype agentic assistant for customer support and account management.
 ## Features implemented so far
 - Dockerised infrastructure
 - Seeded PostgreSQL database
-- FastAPI API layer
+- FastAPI agent endpoint with structured request handling
+- LLM-based agent with dynamic tool selection
 - Tool layer for:
   - customer lookup
   - open issues
   - issue history
   - next actions
+
 
 ## How to run
 
