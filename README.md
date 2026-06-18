@@ -1,10 +1,28 @@
-## Infrastructure
+# Acme Agent
 
-Run the full stack locally:
+## Overview
+Prototype agentic assistant for customer support and account management.
 
+## Stack
+- FastAPI
+- PostgreSQL
+- Redis (not yet used)
+- Keycloak (not yet integrated)
+- Docker Compose
+
+## Features implemented so far
+- Dockerised infrastructure
+- Seeded PostgreSQL database
+- FastAPI API layer
+- Tool layer for:
+  - customer lookup
+  - open issues
+  - issue history
+  - next actions
+
+## How to run
+
+```bash
 docker compose up
-
-Services:
-- Postgres (5432)
-- Redis (6379)
-- Keycloak (8080)
+cd backend
+uvicorn main:app --reload
