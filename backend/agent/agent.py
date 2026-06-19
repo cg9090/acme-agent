@@ -2,10 +2,18 @@ import json
 from unittest import result
 from urllib import response
 
-from agent.tool_registry import TOOLS, TOOL_DESCRIPTIONS
+from agent.tool_registry import TOOLS, TOOL_DESCRIPTIONS, TOOL_PERMISSIONS
 from llm.claude import ClaudeClient
 
 llm = ClaudeClient()
+
+def has_permission(tool_name: str, roles: list[str]) -> bool:
+    allowed = TOOL_PERMISSIONS.get(tool_name)
+
+    if allowed is None:
+        return True
+
+    return any(role in roles for role in allowed)
 
 def choose_tool(user_query: str) -> dict:
     prompt = f"""
@@ -52,8 +60,16 @@ Respond to the users query with the information provided.
     return response.strip()
 
 
-def run_agent(user_query: str):
+def run_agent(user_query: str, user: dict):
     tool_call = choose_tool(user_query)
+    
+    tool_name = tool_call["tool"]
+    
+    if not has_permission(tool_name, user["roles"]):
+        return {
+            "error": f"Access denied for tool: {tool_name}",
+            "user_roles": user["roles"]
+        }
 
     tool_resposnse = execute_tool(tool_call)
 

@@ -9,14 +9,14 @@ TEST_QUERIES = [
 ]
 
 
-def run_agent_evaluation():
+def run_agent_evaluation(user: dict):
     for query in TEST_QUERIES:
         print("\n" + "=" * 50)
         print("QUERY:")
         print(query)
 
         try:
-            result = run_agent(query)
+            result = run_agent(query, user)
 
             print("\nRESULT:")
             print(result)
@@ -25,6 +25,11 @@ def run_agent_evaluation():
             print("\nERROR:")
             print(str(e))
 
+USER = {
+    "username": "admin",
+    "roles": ["admin"]
+}
+
 
 if __name__ == "__main__":
-    run_agent_evaluation()
+    run_agent_evaluation(USER)
