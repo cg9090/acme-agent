@@ -1,4 +1,7 @@
 import requests
+KEYCLOAK_URL = "http://localhost:8080"
+REALM = "acme"
+CLIENT_ID = "acme-api"
 
 TEST_CASES = [
     "Show me the profile for Globex Manufacturing",
