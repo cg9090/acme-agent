@@ -2,6 +2,7 @@ import json
 
 from agent.tool_registry import TOOLS, TOOL_DESCRIPTIONS, TOOL_PERMISSIONS
 from llm.claude import ClaudeClient
+from db.redis_client import redis_client
 
 llm = ClaudeClient()
 
@@ -71,12 +72,27 @@ Respond to the users query with the information provided.
 
     return response.strip()
 
+def cached(cache_key: str):
+
+    cached_result = redis_client.get(cache_key)
+
+    if cached_result:
+        return json.loads(cached_result)
+
+    # tool_function = TOOLS[tool_name]
+    # result = tool_function(**args)
+
+    # 
+
+    return None
+
 
 def run_agent(user_query: str, user: dict):
     plan = plan_tools(user_query)
 
     tool_results = []
     for step in plan.get("steps", []):
+        args = step.get("args", {})
         tool_name = step["tool"]
 
         if not has_permission(tool_name, user["roles"]):
@@ -84,14 +100,28 @@ def run_agent(user_query: str, user: dict):
                 "error": f"Access denied for tool: {tool_name}",
                 "user_roles": user["roles"]
             }
+        
+        cache_key = f"{tool_name}:{json.dumps(args, sort_keys=True)}"
+        tool_response = cached(cache_key)
 
-        tool_resposnse = execute_tool(step)
+        cache_hit = tool_response is not None
+
+        if not cache_hit:
+            tool_response = execute_tool(step)
+            
+            redis_client.setex(
+                cache_key,
+                300,  # Cache for 5 minutes
+                json.dumps(tool_response, default=str)
+                )
+
         tool_results.append({
-            "tool": tool_name,
-            "args": step.get("args", {}),
-            "result": tool_resposnse
-        })
-
+                "tool": tool_name,
+                "args": args,
+                "cache_hit": cache_hit,
+                "result": tool_response
+            })
+        
     response = respond(user_query, tool_results)
 
     return {

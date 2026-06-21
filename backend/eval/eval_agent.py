@@ -2,11 +2,12 @@ from agent.agent import run_agent
 
 
 TEST_QUERIES = [
-    # "Show me the profile for Globex Manufacturing",
+    "Show me the profile for Globex Manufacturing",
+    "Show me the profile for globex manufacturing",
     # "What open issues does customer 1 have?",
     # "Show me the history for issue 1",
     # "What is the next action for issue 1?"
-    "Get the history for issue 1 and then suggest the next action"
+    # "Get the history for issue 1 and then suggest the next action"
 ]
 
 
