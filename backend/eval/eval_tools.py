@@ -7,6 +7,9 @@ def run_tests():
     print("\n--- CUSTOMER ---")
     print(get_customer_profile("Globex Manufacturing"))
 
+    print("\n--- CUSTOMER ---")
+    print(get_customer_profile("globex manufacturing"))
+
     print("\n--- OPEN ISSUES ---")
     print(get_open_issues(1))
 
