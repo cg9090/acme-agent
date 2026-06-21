@@ -2,10 +2,11 @@ from agent.agent import run_agent
 
 
 TEST_QUERIES = [
-    "Show me the profile for Globex Manufacturing",
-    "What open issues does customer 1 have?",
-    "Show me the history for issue 1",
-    "What is the next action for issue 1?"
+    # "Show me the profile for Globex Manufacturing",
+    # "What open issues does customer 1 have?",
+    # "Show me the history for issue 1",
+    # "What is the next action for issue 1?"
+    "Get the history for issue 1 and then suggest the next action"
 ]
 
 
@@ -18,8 +19,12 @@ def run_agent_evaluation(user: dict):
         try:
             result = run_agent(query, user)
 
-            print("\nRESULT:")
-            print(result)
+            print("\nANSWER:")
+            print(result["answer"])
+
+            print("\nTOOLS USED:")
+            for t in result["tool_calls"]:
+                print(t)
 
         except Exception as e:
             print("\nERROR:")

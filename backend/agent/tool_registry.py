@@ -65,9 +65,13 @@ Available tools:
 Return JSON only in this format:
 
 {
-  "tool": "<tool_name>",
-  "args": {
-    ...
-  }
+   "steps": [
+     {
+       "tool": "<tool_name>",
+       "args": {
+         ...
+       }
+     }
+   ]
 }
 """

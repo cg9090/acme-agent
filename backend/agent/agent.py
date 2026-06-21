@@ -1,6 +1,4 @@
 import json
-from unittest import result
-from urllib import response
 
 from agent.tool_registry import TOOLS, TOOL_DESCRIPTIONS, TOOL_PERMISSIONS
 from llm.claude import ClaudeClient
@@ -15,20 +13,34 @@ def has_permission(tool_name: str, roles: list[str]) -> bool:
 
     return any(role in roles for role in allowed)
 
-def choose_tool(user_query: str) -> dict:
+# def choose_tool(user_query: str) -> dict:
+#     prompt = f"""
+# {TOOL_DESCRIPTIONS}
+
+# User query:
+# {user_query}
+
+# Respond with JSON only.
+# """
+
+#     response = llm.generate(prompt)
+#     response = response.replace("```json", "")
+#     response = response.replace("```", "")
+#     response = response.strip()
+#     return json.loads(response)
+
+def plan_tools(user_query: str) -> dict:
     prompt = f"""
+You are a tool planning agent.
+
+Available tools:
 {TOOL_DESCRIPTIONS}
 
 User query:
 {user_query}
-
-Respond with JSON only.
 """
-
     response = llm.generate(prompt)
-    response = response.replace("```json", "")
-    response = response.replace("```", "")
-    response = response.strip()
+    response = response.replace("```json", "").replace("```", "").strip()
     return json.loads(response)
 
 
@@ -61,19 +73,28 @@ Respond to the users query with the information provided.
 
 
 def run_agent(user_query: str, user: dict):
-    tool_call = choose_tool(user_query)
-    
-    tool_name = tool_call["tool"]
-    
-    if not has_permission(tool_name, user["roles"]):
-        return {
-            "error": f"Access denied for tool: {tool_name}",
-            "user_roles": user["roles"]
-        }
+    plan = plan_tools(user_query)
 
-    tool_resposnse = execute_tool(tool_call)
+    tool_results = []
+    for step in plan.get("steps", []):
+        tool_name = step["tool"]
 
-    response = respond(user_query, tool_resposnse)
+        if not has_permission(tool_name, user["roles"]):
+            return {
+                "error": f"Access denied for tool: {tool_name}",
+                "user_roles": user["roles"]
+            }
 
-    return response
-    
+        tool_resposnse = execute_tool(step)
+        tool_results.append({
+            "tool": tool_name,
+            "args": step.get("args", {}),
+            "result": tool_resposnse
+        })
+
+    response = respond(user_query, tool_results)
+
+    return {
+        "answer": response,
+        "tool_calls": tool_results
+    }

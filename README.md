@@ -41,10 +41,37 @@ Prototype agentic assistant for customer support and account management.
 - Next action creation
 
 
-
 ## How to run
 
 ```bash
 docker compose up
 cd backend
 uvicorn main:app --reload
+
+```
+
+## Design Decisions & Trade-offs
+
+### Agent Architecture: Planned vs Reactive Execution
+
+A "plan-and-execute" approach was chosen for agent architecture rather than a fully reactive agent.
+
+In a reactive agent, tool outputs dynamically influence subsequent tool calls in an iterative loop. While more flexible, this approach introduces additional complexity in terms of:
+
+- Non-deterministic execution paths
+- Harder evaluation and debugging
+- Increased code complexity
+
+Given the scope of this assessment and the requirement to deliver a minimal working prototype, a deterministic multi-step planning approach was chosen:
+
+1. The LLM generates a structured tool execution plan
+2. The system executes tools sequentially
+3. The results are aggregated and summarised by the LLM
+
+This approach ensures:
+- Predictable execution flow
+- Clear auditability of tool usage
+- Straightforward enforcement of RBAC policies
+- Easier evaluation and demonstration
+
+This trade-off prioritises reliability, transparency, and maintainability over full agent autonomy.
