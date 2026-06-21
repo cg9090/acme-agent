@@ -61,17 +61,4 @@ Available tools:
 
 6. create_next_action(issue_id: int, action_text: str)
    Creates a new next action for an issue.
-
-Return JSON only in this format:
-
-{
-   "steps": [
-     {
-       "tool": "<tool_name>",
-       "args": {
-         ...
-       }
-     }
-   ]
-}
 """

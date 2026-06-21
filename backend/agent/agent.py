@@ -39,6 +39,27 @@ Available tools:
 
 User query:
 {user_query}
+
+Return JSON only in this format:
+
+{{
+   "steps": [
+     {{
+       "tool": "<tool_name>",
+       "args": {{
+         ...
+       }}
+     }}
+   ]
+}}
+
+Rules:
+- Output ONLY JSON
+- No explanations
+- No markdown
+- No backticks
+- No additional text before or after JSON
+- If information is missing, use null (do NOT explain missing fields)
 """
     response = llm.generate(prompt)
     response = response.replace("```json", "").replace("```", "").strip()
@@ -54,7 +75,16 @@ def execute_tool(tool_call: dict):
 
     tool_function = TOOLS[tool_name]
 
-    return tool_function(**args)
+    try:
+        return tool_function(**args)
+
+    except TypeError as e:
+        return {
+            "error": "invalid_tool_arguments",
+            "tool": tool_name,
+            "details": str(e),
+            "args_received": args
+        }
 
 def respond(user_query: str, tool_output: dict) -> str:
     prompt = f"""
