@@ -6,7 +6,7 @@ Prototype agentic assistant for customer support and account management.
 ## Stack
 - FastAPI
 - PostgreSQL
-- Redis (not yet used)
+- Redis
 - Keycloak
 - Docker Compose
 - LLM-based agent (Claude / Gemini integration)
@@ -29,7 +29,7 @@ Prototype agentic assistant for customer support and account management.
 ### Agent
 - LLM-powered tool selection (JSON-based tool calling)
 - Dynamic tool execution layer
-- Guardrails for invalid tool selection
+- Guardrails for invalid tool selection and malformed tool arguments
 - RBAC enforced before tool execution
 
 ### Tools
@@ -75,3 +75,17 @@ This approach ensures:
 - Easier evaluation and demonstration
 
 This trade-off prioritises reliability, transparency, and maintainability over full agent autonomy.
+
+## Caching (Redis)
+
+Redis is used as a TTL-based cache for tool results to improve performance and reduce database load.
+
+Tool results are cached using a deterministic cache key (tool name + arguments)
+Cached entries expire after a fixed TTL (300s)
+
+Trade-offs:
+
+Cached data may become stale if underlying PostgreSQL data changes within the TTL window
+PostgreSQL remains the source of truth
+
+This design prioritises simplicity and performance appropriate for a prototype system.
