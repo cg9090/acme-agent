@@ -202,3 +202,37 @@ This provides:
   - All tool execution is centralised behind a single interface
 
 ---
+
+## Skills
+
+The system implements reusable **Skills**, which are higher-level workflows built on top of MCP tools.
+
+Unlike individual tools (atomic operations) or the MCP layer (execution interface), Skills encapsulate multi-step business logic into a single reusable workflow.
+
+### Example: Customer Escalation Summary Skill
+
+The Escalation Summary Skill performs a structured workflow to analyse a customer’s situation:
+
+- Retrieve customer profile
+- Retrieve open issues for the customer
+- Retrieve issue history (bounded to top N issues)
+- Aggregate results into an LLM-generated escalation summary
+
+### Output
+
+The skill returns:
+
+- Executive summary of the customer’s current situation  
+- Risk level (Low / Medium / High / Critical)  
+- Recommended next action  
+- Missing or incomplete information  
+- Full tool execution trace (for observability and debugging)
+
+### Why Skills are used
+
+Skills provide a higher-level abstraction between tools and the agent:
+
+- Encapsulate reusable business workflows
+- Reduce complexity in agent planning
+- Improve consistency of multi-step operations
+- Provide structured observability over tool usage
