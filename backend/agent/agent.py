@@ -100,7 +100,6 @@ def run_agent(user_query: str, user: dict):
         tool_response = cached(cache_key)
 
         cache_hit = tool_response is not None
-
         if not cache_hit:
             tool_response = mcp.execute_tool(tool_name, args)
 

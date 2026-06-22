@@ -25,5 +25,5 @@ def get_customer_profile(customer_name: str):
         )
         return {
             "success": True,
-            "customer": [dict(row._mapping) for row in result]
+            "customer": dict(result.fetchone()._mapping)
         }

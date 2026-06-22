@@ -26,7 +26,7 @@ def execute_tool(request: dict):
 
     try:
         result = tool["function"](**args)
-        return {"result": result}
+        return result
 
     except Exception as e:
         return {
