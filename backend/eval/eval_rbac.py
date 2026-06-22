@@ -10,18 +10,18 @@ TEST_QUERIES = [
 
 
 USERS = [
-    # {
-    #     "username": "alice",
-    #     "roles": ["sales_user"]
-    # },
-    # {
-    #     "username": "bob",
-    #     "roles": ["support_user"]
-    # },
-    # {
-    #     "username": "admin",
-    #     "roles": ["admin"]
-    # },
+    {
+        "username": "alice",
+        "roles": ["sales_user"]
+    },
+    {
+        "username": "bob",
+        "roles": ["support_user"]
+    },
+    {
+        "username": "admin",
+        "roles": ["admin"]
+    },
     {
         "username": "test1",
         "roles": []

@@ -1,41 +1,28 @@
 import json
 
-from agent.tool_registry import TOOLS, TOOL_DESCRIPTIONS, TOOL_PERMISSIONS
+# from agent.tool_registry import TOOLS, TOOL_DESCRIPTIONS, TOOL_PERMISSIONS
 from llm.claude import ClaudeClient
 from db.redis_client import redis_client
+from agent.mcp_client import MCPClient
 
 llm = ClaudeClient()
+mcp = MCPClient(base_url="http://localhost:8001")
 
-def has_permission(tool_name: str, roles: list[str]) -> bool:
-    allowed = TOOL_PERMISSIONS.get(tool_name)
+def build_tool_descriptions(tools):
+    return "\n".join(
+        f"{name}: {meta['description']} | schema: {meta['schema']}"
+        for name, meta in tools.items()
+    )
 
-    if allowed is None:
-        return True
+def has_permission(tool_roles: list[str], user_roles: list[str]) -> bool:
+    return any(role in user_roles for role in tool_roles)
 
-    return any(role in roles for role in allowed)
-
-# def choose_tool(user_query: str) -> dict:
-#     prompt = f"""
-# {TOOL_DESCRIPTIONS}
-
-# User query:
-# {user_query}
-
-# Respond with JSON only.
-# """
-
-#     response = llm.generate(prompt)
-#     response = response.replace("```json", "")
-#     response = response.replace("```", "")
-#     response = response.strip()
-#     return json.loads(response)
-
-def plan_tools(user_query: str) -> dict:
+def plan_tools(user_query: str, tools: dict) -> dict:
     prompt = f"""
 You are a tool planning agent.
 
 Available tools:
-{TOOL_DESCRIPTIONS}
+{build_tool_descriptions(tools)}
 
 User query:
 {user_query}
@@ -61,30 +48,12 @@ Rules:
 - No additional text before or after JSON
 - If information is missing, use null (do NOT explain missing fields)
 """
+
+
+
     response = llm.generate(prompt)
     response = response.replace("```json", "").replace("```", "").strip()
     return json.loads(response)
-
-
-def execute_tool(tool_call: dict):
-    tool_name = tool_call["tool"]
-    args = tool_call.get("args", {})
-
-    if tool_name not in TOOLS:
-        raise ValueError(f"Unknown tool: {tool_name}")
-
-    tool_function = TOOLS[tool_name]
-
-    try:
-        return tool_function(**args)
-
-    except TypeError as e:
-        return {
-            "error": "invalid_tool_arguments",
-            "tool": tool_name,
-            "details": str(e),
-            "args_received": args
-        }
 
 def respond(user_query: str, tool_output: dict) -> str:
     prompt = f"""
@@ -109,23 +78,19 @@ def cached(cache_key: str):
     if cached_result:
         return json.loads(cached_result)
 
-    # tool_function = TOOLS[tool_name]
-    # result = tool_function(**args)
-
-    # 
-
     return None
 
 
 def run_agent(user_query: str, user: dict):
-    plan = plan_tools(user_query)
+    tools = mcp.list_tools()
+    plan = plan_tools(user_query, tools)
 
     tool_results = []
     for step in plan.get("steps", []):
         args = step.get("args", {})
         tool_name = step["tool"]
 
-        if not has_permission(tool_name, user["roles"]):
+        if not has_permission(tools[tool_name]["roles"], user["roles"]):
             return {
                 "error": f"Access denied for tool: {tool_name}",
                 "user_roles": user["roles"]
@@ -137,8 +102,8 @@ def run_agent(user_query: str, user: dict):
         cache_hit = tool_response is not None
 
         if not cache_hit:
-            tool_response = execute_tool(step)
-            
+            tool_response = mcp.execute_tool(tool_name, args)
+
             redis_client.setex(
                 cache_key,
                 300,  # Cache for 5 minutes
