@@ -89,3 +89,116 @@ Cached data may become stale if underlying PostgreSQL data changes within the TT
 PostgreSQL remains the source of truth
 
 This design prioritises simplicity and performance appropriate for a prototype system.
+
+### What is stored in Redis
+
+Redis stores read-only tool execution results, including:
+
+Customer profile lookups
+Open issues queries
+Issue history results
+Next action retrievals
+
+These values are cached because they are:
+
+frequently requested
+expensive to compute relative to retrieval from cache
+safe to serve with short-term staleness
+
+Each cache entry is generated using a deterministic key based on:
+
+tool name
+sorted tool arguments
+
+### What is stored in PostgreSQL
+
+PostgreSQL stores all authoritative data, including:
+
+Customers
+Issues
+Issue status updates
+Next actions
+Historical records
+
+PostgreSQL is treated as the single source of truth.
+
+MCP (Model Context Protocol)
+Overview
+
+The system uses a dedicated MCP server to expose all operational tools through a unified execution interface.
+
+Instead of the agent directly importing and executing Python functions, all tool execution is delegated to the MCP layer.
+
+Architecture Role
+
+The MCP server acts as an abstraction layer between the agent and backend services:
+
+The agent only performs:
+tool selection (planning)
+argument generation
+result summarisation
+The MCP server handles:
+tool execution
+access to backend services (PostgreSQL)
+structured tool registry exposure
+Why MCP is used
+
+MCP was introduced to decouple tool execution from the agent logic.
+
+This provides:
+
+Separation of concerns
+agent = reasoning
+MCP = execution layer
+Modularity
+tools can be added/modified without changing agent code
+Scalability
+supports future expansion to external tools or services
+Clean interface boundary
+all tools are accessed via a single execution endpoint
+
+## MCP (Model Context Protocol)
+
+### Overview
+
+The system uses a dedicated MCP (Model Context Protocol) server to expose all operational tools through a unified execution interface.
+
+Instead of the agent directly importing and executing Python functions, all tool execution is delegated to the MCP layer.
+
+This introduces a clear separation between reasoning and execution.
+
+---
+
+### Architecture Role
+
+The MCP server acts as an execution layer between the agent and backend services.
+
+- The agent is responsible for:
+  - Interpreting user queries
+  - Generating a structured tool execution plan
+  - Summarising tool outputs
+
+- The MCP server is responsible for:
+  - Executing tools safely
+  - Providing a unified interface for tool execution
+  - Accessing backend services (e.g. PostgreSQL)
+
+
+MCP was introduced to decouple tool execution from agent logic.
+
+This provides:
+
+- Separation of concerns
+  - Agent focuses on reasoning and planning
+  - MCP focuses on tool execution
+
+- Modularity
+  - Tools can be added, removed, or modified without changing agent code
+
+- Extensibility
+  - The system can later support external tools or services without modifying the agent
+
+- Clear system boundary
+  - All tool execution is centralised behind a single interface
+
+---
