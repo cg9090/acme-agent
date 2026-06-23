@@ -4,6 +4,7 @@ import json
 from llm.claude import ClaudeClient
 from db.redis_client import redis_client
 from agent.mcp_client import MCPClient
+from logging_config import logger
 
 llm = ClaudeClient()
 mcp = MCPClient(base_url="http://localhost:8001")
@@ -82,8 +83,12 @@ def cached(cache_key: str):
 
 
 def run_agent(user_query: str, user: dict):
+    logger.info(f"User query: {user_query}")
+    logger.info(f"User roles: {user['roles']}")
+
     tools = mcp.list_tools()
     plan = plan_tools(user_query, tools)
+    logger.info(f"Plan generated: {plan}")
 
     tool_results = []
     for step in plan.get("steps", []):
@@ -91,6 +96,9 @@ def run_agent(user_query: str, user: dict):
         tool_name = step["tool"]
 
         if not has_permission(tools[tool_name]["roles"], user["roles"]):
+            logger.warning(
+                f"RBAC denied. Tool={tool_name}, Roles={user['roles']}"
+            )
             return {
                 "error": f"Access denied for tool: {tool_name}",
                 "user_roles": user["roles"]
@@ -108,6 +116,10 @@ def run_agent(user_query: str, user: dict):
                 300,  # Cache for 5 minutes
                 json.dumps(tool_response, default=str)
                 )
+            
+        logger.info(
+            f"Tool={tool_name}, CacheHit={cache_hit}"
+        )
 
         tool_results.append({
                 "tool": tool_name,
