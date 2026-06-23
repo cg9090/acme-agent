@@ -1,8 +1,10 @@
 fastapi
 uvicorn
 sqlalchemy
-psycopg2-binary
-google-genai
-python-dotenv
-anthropic
+redis
+requests
 python-jose
+anthropic
+psycopg2-binary
+python-dotenv
+langsmith
