@@ -2,7 +2,7 @@ from fastapi import Header, HTTPException
 from jose import jwt
 import requests
 
-KEYCLOAK_URL = "http://localhost:8080"
+KEYCLOAK_URL = "http://keycloak:8080"
 REALM = "acme"
 CLIENT_ID="acme-api"
 CLIENT_SECRET="YZCDapEJCWF4TBZWdg3sIbXgPhm1y04A"

@@ -4,7 +4,7 @@ from db.redis_client import redis_client
 
 import json
 
-mcp = MCPClient(base_url="http://localhost:8001")
+mcp = MCPClient(base_url="http://mcp:9000")
 llm = ClaudeClient()
 
 

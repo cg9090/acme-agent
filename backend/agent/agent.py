@@ -9,7 +9,7 @@ from langsmith.run_helpers import traceable
 
 
 llm = ClaudeClient()
-mcp = MCPClient(base_url="http://localhost:8001")
+mcp = MCPClient(base_url="http://mcp:9000")
 
 def build_tool_descriptions(tools):
     return "\n".join(

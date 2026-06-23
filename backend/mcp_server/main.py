@@ -1,7 +1,6 @@
 from fastapi import FastAPI, logger
 from mcp_server.tool_registry import TOOLS
 from logging_config import logger
-from langsmith.run_helpers import traceable
 
 app = FastAPI(title= "Acme MCP Server")
 

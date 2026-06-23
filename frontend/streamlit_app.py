@@ -1,14 +1,13 @@
 import streamlit as st
 import requests
 import json
-import requests
 
-KEYCLOAK_URL = "http://localhost:8080"
+KEYCLOAK_URL = "http://keycloak:8080"
 REALM = "acme"
 CLIENT_ID = "acme-api"
 CLIENT_SECRET = "YZCDapEJCWF4TBZWdg3sIbXgPhm1y04A"
 
-API_URL = "http://localhost:8000/agent"
+API_URL = "http://backend:8000/agent"
 
 def login(username, password):
     url = f"{KEYCLOAK_URL}/realms/{REALM}/protocol/openid-connect/token"
@@ -99,13 +98,3 @@ if prompt:
         {"role": "assistant", "content": answer}
     )
 
-    # -------------------------
-    # DEBUG SECTION (optional)
-    # -------------------------
-    if st.checkbox("Show raw response"):
-        st.json(result)
-
-    if st.session_state.token:
-        if st.button("Logout"):
-            st.session_state.token = None
-            st.rerun()
