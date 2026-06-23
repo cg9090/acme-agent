@@ -1,38 +1,95 @@
 # Acme Agent
 
 ## Overview
-Prototype agentic assistant for customer support and account management.
+
+Acme Agent is a prototype agentic assistant for customer support and account management.
+
+It combines an LLM-based reasoning system with a tool execution layer (MCP), secure authentication via Keycloak, and a modular backend architecture designed for extensibility and observability.
+
+---
 
 ## Stack
-- FastAPI
-- PostgreSQL
-- Redis
-- Keycloak
-- Docker Compose
-- LLM-based agent (Claude / Gemini integration)
 
-## Features implemented so far
+- FastAPI (Backend + MCP server)
+- Streamlit (Frontend UI)
+- PostgreSQL (System of record)
+- Redis (Caching layer)
+- Keycloak (Authentication & RBAC)
+- Docker Compose (Infrastructure orchestration)
+- LLM Agent (Claude / Gemini compatible tool-calling)
+
+---
+
+## Architecture Overview
+
+The system follows a **3-layer agentic architecture**:
+
+### 1. Agent Layer (FastAPI Backend)
+Responsible for:
+- Interpreting user queries
+- Generating tool execution plans
+- Orchestrating MCP tool calls
+- Summarising results
+
+### 2. MCP Layer (Tool Execution Server)
+Responsible for:
+- Executing backend tools
+- Providing a unified tool interface
+- Isolating execution logic from the agent
+- Enforcing safe tool boundaries
+
+### 3. Data Layer
+- PostgreSQL → source of truth
+- Redis → TTL-based caching layer
+
+---
+
+## Features Implemented
 
 ### Infrastructure
-- Fully Dockerised system (FastAPI, PostgreSQL, Keycloak)
-- Seeded PostgreSQL database with customers, issues, and actions
+- Fully containerised system using Docker Compose
+- PostgreSQL seeded with:
+  - Customers
+  - Issues
+  - Issue history
+  - Next actions
+- Redis cache layer integrated for tool performance optimisation
+
+---
 
 ### Authentication & Security
-- Keycloak authentication integrated
-- JWT validation in FastAPI
-- Role extraction from token
-- Role-based access control (RBAC) enforced at agent layer:
-  - sales_user → read-only access
-  - support_user → read + update issues
-  - admin → full access (including next actions)
 
-### Agent
-- LLM-powered tool selection (JSON-based tool calling)
-- Dynamic tool execution layer
-- Guardrails for invalid tool selection and malformed tool arguments
-- RBAC enforced before tool execution
+- Keycloak integration with bearer token authentication
+- JWT validation in FastAPI backend
+- Role extraction from token claims
+- Role-Based Access Control (RBAC) enforced at agent and tool layer
+
+#### Roles
+
+| Role | Permissions |
+|------|------------|
+| `sales_user` | Read-only access to customer and issue data |
+| `support_user` | Read + update issue workflows |
+| `admin` | Full access including next actions and modifications |
+
+---
+
+### Agent Capabilities
+
+- LLM-powered tool selection (structured JSON tool calling)
+- Deterministic multi-step execution pipeline
+- Tool result aggregation and summarisation
+- Guardrails for:
+  - Invalid tool selection
+  - Malformed arguments
+  - Unauthorized tool access
+
+---
 
 ### Tools
+
+The MCP layer exposes the following tools:
+
 - Customer profile lookup
 - Open issues retrieval
 - Issue history tracking
@@ -40,199 +97,128 @@ Prototype agentic assistant for customer support and account management.
 - Issue status updates
 - Next action creation
 
+---
 
-## How to run
+### Skills (High-Level Workflows)
 
-```bash
-docker compose up
-cd backend
-uvicorn main:app --reload
+Skills are composite workflows built on top of MCP tools.
 
-```
+#### Example: Customer Escalation Summary Skill
 
-## Design Decisions & Trade-offs
+This skill performs a multi-step workflow:
 
-### Agent Architecture: Planned vs Reactive Execution
+1. Retrieve customer profile  
+2. Retrieve open issues  
+3. Retrieve recent issue history  
+4. Generate an LLM-powered escalation summary  
 
-A "plan-and-execute" approach was chosen for agent architecture rather than a fully reactive agent.
+#### Output includes:
+- Executive summary
+- Risk level (Low / Medium / High / Critical)
+- Recommended next action
+- Missing information analysis
+- Full tool execution trace
 
-In a reactive agent, tool outputs dynamically influence subsequent tool calls in an iterative loop. While more flexible, this approach introduces additional complexity in terms of:
+#### Why Skills exist
+- Encapsulate reusable business workflows
+- Reduce agent planning complexity
+- Improve consistency of outputs
+- Provide structured observability
 
-- Non-deterministic execution paths
-- Harder evaluation and debugging
-- Increased code complexity
-
-Given the scope of this assessment and the requirement to deliver a minimal working prototype, a deterministic multi-step planning approach was chosen:
-
-1. The LLM generates a structured tool execution plan
-2. The system executes tools sequentially
-3. The results are aggregated and summarised by the LLM
-
-This approach ensures:
-- Predictable execution flow
-- Clear auditability of tool usage
-- Straightforward enforcement of RBAC policies
-- Easier evaluation and demonstration
-
-This trade-off prioritises reliability, transparency, and maintainability over full agent autonomy.
+---
 
 ## Caching (Redis)
 
-Redis is used as a TTL-based cache for tool results to improve performance and reduce database load.
+Redis is used as a TTL-based cache for tool results.
 
-Tool results are cached using a deterministic cache key (tool name + arguments)
-Cached entries expire after a fixed TTL (300s)
+### What is cached
 
-Trade-offs:
+- Customer profile lookups
+- Open issues queries
+- Issue history retrieval
+- Next action lookups
 
-Cached data may become stale if underlying PostgreSQL data changes within the TTL window
-PostgreSQL remains the source of truth
+### Cache strategy
 
-This design prioritises simplicity and performance appropriate for a prototype system.
+- Deterministic cache keys:
+  - tool name + sorted arguments
+- TTL: 300 seconds
 
-### What is stored in Redis
+### Trade-offs
 
-Redis stores read-only tool execution results, including:
+- ⚠ Potential staleness within TTL window
+- ✔ Significant performance improvement
+- ✔ Reduced database load
+- ✔ Suitable for prototype systems
 
-Customer profile lookups
-Open issues queries
-Issue history results
-Next action retrievals
+PostgreSQL remains the **single source of truth**.
 
-These values are cached because they are:
-
-frequently requested
-expensive to compute relative to retrieval from cache
-safe to serve with short-term staleness
-
-Each cache entry is generated using a deterministic key based on:
-
-tool name
-sorted tool arguments
-
-### What is stored in PostgreSQL
-
-PostgreSQL stores all authoritative data, including:
-
-Customers
-Issues
-Issue status updates
-Next actions
-Historical records
-
-PostgreSQL is treated as the single source of truth.
-
-MCP (Model Context Protocol)
-Overview
-
-The system uses a dedicated MCP server to expose all operational tools through a unified execution interface.
-
-Instead of the agent directly importing and executing Python functions, all tool execution is delegated to the MCP layer.
-
-Architecture Role
-
-The MCP server acts as an abstraction layer between the agent and backend services:
-
-The agent only performs:
-tool selection (planning)
-argument generation
-result summarisation
-The MCP server handles:
-tool execution
-access to backend services (PostgreSQL)
-structured tool registry exposure
-Why MCP is used
-
-MCP was introduced to decouple tool execution from the agent logic.
-
-This provides:
-
-Separation of concerns
-agent = reasoning
-MCP = execution layer
-Modularity
-tools can be added/modified without changing agent code
-Scalability
-supports future expansion to external tools or services
-Clean interface boundary
-all tools are accessed via a single execution endpoint
+---
 
 ## MCP (Model Context Protocol)
 
 ### Overview
 
-The system uses a dedicated MCP (Model Context Protocol) server to expose all operational tools through a unified execution interface.
+MCP is a dedicated execution layer that exposes all backend tools through a unified interface.
 
-Instead of the agent directly importing and executing Python functions, all tool execution is delegated to the MCP layer.
-
-This introduces a clear separation between reasoning and execution.
+Instead of the agent directly calling Python functions, all tool execution is delegated to MCP.
 
 ---
 
 ### Architecture Role
 
-The MCP server acts as an execution layer between the agent and backend services.
+The MCP server acts as a strict separation between reasoning and execution:
 
-- The agent is responsible for:
-  - Interpreting user queries
-  - Generating a structured tool execution plan
-  - Summarising tool outputs
+#### Agent responsibilities:
+- Query interpretation
+- Tool selection
+- Execution planning
+- Result summarisation
 
-- The MCP server is responsible for:
-  - Executing tools safely
-  - Providing a unified interface for tool execution
-  - Accessing backend services (e.g. PostgreSQL)
-
-
-MCP was introduced to decouple tool execution from agent logic.
-
-This provides:
-
-- Separation of concerns
-  - Agent focuses on reasoning and planning
-  - MCP focuses on tool execution
-
-- Modularity
-  - Tools can be added, removed, or modified without changing agent code
-
-- Extensibility
-  - The system can later support external tools or services without modifying the agent
-
-- Clear system boundary
-  - All tool execution is centralised behind a single interface
+#### MCP responsibilities:
+- Tool execution
+- Database access
+- Tool registry management
+- Safe execution boundary
 
 ---
 
-## Skills
+### Why MCP is used
 
-The system implements reusable **Skills**, which are higher-level workflows built on top of MCP tools.
+- Separation of concerns
+- Modular tool system
+- Easier extensibility
+- Clean execution boundary
+- Future support for external tool integrations
 
-Unlike individual tools (atomic operations) or the MCP layer (execution interface), Skills encapsulate multi-step business logic into a single reusable workflow.
+---
 
-### Example: Customer Escalation Summary Skill
+## Design Decisions & Trade-offs
 
-The Escalation Summary Skill performs a structured workflow to analyse a customer’s situation:
+### Agent Architecture: Plan-and-Execute vs Reactive Agents
 
-- Retrieve customer profile
-- Retrieve open issues for the customer
-- Retrieve issue history (bounded to top N issues)
-- Aggregate results into an LLM-generated escalation summary
+A deterministic **plan-and-execute** approach was chosen over a fully reactive agent.
 
-### Output
+#### Reactive agents:
+- Dynamically chain tool calls based on outputs
+- More flexible
+- Harder to debug and evaluate
 
-The skill returns:
+#### Chosen approach:
+- LLM generates a structured execution plan
+- System executes tools sequentially
+- Results are aggregated and summarised
 
-- Executive summary of the customer’s current situation  
-- Risk level (Low / Medium / High / Critical)  
-- Recommended next action  
-- Missing or incomplete information  
-- Full tool execution trace (for observability and debugging)
+#### Benefits:
+- Predictable execution flow
+- Easier debugging and evaluation
+- Strong RBAC enforcement
+- Clear auditability of tool usage
+- Better suited for assessment constraints
 
-### Why Skills are used
+---
 
-Skills provide a higher-level abstraction between tools and the agent:
+## How to Run
 
-- Encapsulate reusable business workflows
-- Reduce complexity in agent planning
-- Improve consistency of multi-step operations
-- Provide structured observability over tool usage
+```bash
+docker compose up --build
