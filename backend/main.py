@@ -21,7 +21,7 @@ class QueryRequest(BaseModel):
 
 @app.post("/agent")
 def agent_endpoint(req: QueryRequest, user=Depends(get_current_user)):
-    result = run_agent(req.query)
+    result = run_agent(req.query, user)
 
     return {
         "query": req.query,
