@@ -110,6 +110,7 @@ def run_agent(user_query: str, user: dict):
                 f"RBAC denied. Tool={tool_name}, Roles={user['roles']}"
             )
             return {
+                "answer": f"You do not have the required permissions for this request.",
                 "error": f"Access denied for tool: {tool_name}",
                 "user_roles": user["roles"]
             }
